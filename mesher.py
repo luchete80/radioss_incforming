@@ -1,9 +1,9 @@
 class Mesh:
-  node_count = 0
+  node_count = (int) (0.0)
   nodes = [(0.0,0.0,0.0)]
   def __init__(self, largo, delta):
     elem_xy = largo/delta
-    self.node_count = elem_xy
+    self.node_count = (int)(elem_xy)
       # self.r = realpart
       # self.i = imagpart
   def __init__(self):
@@ -11,13 +11,18 @@ class Mesh:
     
   def alloc_nodes(nod_count):
     for i in range (nod_count-1):
-      node_count.append((0.,0.,0.))
+      nodes.append((0.,0.,0.))
+      
+  def printRadioss(self,fname):
+    f = open(fname,"w+")
+    for i in range (self.node_count):
+      f.write("%.6e, %.6e\n" % (self.nodes[i][0],self.nodes[i][1]))
 
 class Plane_Mesh(Mesh):
   def __init__(self, largo, delta):
     elem_xy = largo/delta
-    self.node_count = elem_xy
-    nc = (int)((elem_xy+1)*(elem_xy+1) -1)
+    self.node_count = (int)(elem_xy)
+    nc = (int)(elem_xy+1)
     for i in range (nc):
       x = 0.0
       for i in range (nc):
