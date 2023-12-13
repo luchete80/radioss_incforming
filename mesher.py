@@ -17,6 +17,9 @@ class Mesh:
     f = open(fname,"w+")
     for i in range (self.node_count):
       f.write("%.6e, %.6e\n" % (self.nodes[i][0],self.nodes[i][1]))
+      
+  # def writeFloatField(number, length):
+    
 
 class Plane_Mesh(Mesh):
   def __init__(self, largo, delta):
