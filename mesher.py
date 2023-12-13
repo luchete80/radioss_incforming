@@ -22,7 +22,7 @@ class Plane_Mesh(Mesh):
       x = 0.0
       for i in range (nc):
         self.nodes.append((0.,0.,0.))
-    print(self.nodes)
+    # print(self.nodes)
       
 import numpy as np
 def plane_mesh(length, delta, nodos, elnod, mesh):
