@@ -1,6 +1,8 @@
 class Mesh:
   node_count = (int) (0.0)
   nodes = []
+  elnod = []
+  # elnod = [(1,2,3,4)]
   def __init__(self, largo, delta):
     elem_xy = largo/delta
     self.node_count = (int)(elem_xy)
@@ -51,7 +53,9 @@ class Plane_Mesh(Mesh):
     elem_xy = largo/delta
     nc = (int)(elem_xy+1)
     self.node_count = nc * nc
-    print ('Plate Nodes: ' + str(self.node_count))
+    self.elem_count = (int)(elem_xy)*(elem_xy)
+    print ('Nodes Count: ' + str(self.node_count))
+    print ('Elem Count: ' + str(self.node_count))
     y = 0.0
     for j in range (nc):
       x = 0.0
@@ -59,7 +63,13 @@ class Plane_Mesh(Mesh):
         self.nodes.append((x,y,0.))
         x = x + delta
       y = y + delta
-    # print(self.nodes)
+      
+    for ey in range (1,(int)(elem_xy)):    
+      for ex in range (1,(int)(elem_xy)):   
+        self.elnod.append(((elem_xy+1)*ey+ex+1,(elem_xy+1)*ey + ex+2,(elem_xy+1)*(ey+1)+ex+2,(elem_xy+1)*(ey+1)+ex+1))
+                    # elem%elnod(i,:)=[(nel(1)+1)*ey + ex+1,(nel(1)+1)*ey + ex+2,(nel(1)+1)*(ey+1)+ex+2,(nel(1)+1)*(ey+1)+ex+1]         
+              # print *, "Element ", i , "Elnod", elem%elnod(i,:) 
+    # print(self.elnod)
       
 import numpy as np
 def plane_mesh(length, delta, nodos, elnod, mesh):
