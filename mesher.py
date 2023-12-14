@@ -1,5 +1,6 @@
 class Mesh:
   node_count = (int) (0.0)
+  elem_count = (int) (0.0)
   nodes = []
   elnod = []
   # elnod = [(1,2,3,4)]
@@ -45,15 +46,21 @@ class Mesh:
         line = line + self.writeFloatField(self.nodes[i][d],20,6) 
       # f.write("%.6e, %.6e\n" % (self.nodes[i][0],self.nodes[i][1]))
       f.write(line + '\n')
+    f.write('/SHELL/' + str(self.id) + '\n')
+    for i in range (self.elem_count):
+      line = self.writeIntField(i,10)
+      for d in range (4):
+        line = line + self.writeIntField(self.elnod[i][d],10)
+      f.write(line + '\n')
       
-
-
+      
 class Plane_Mesh(Mesh):
-  def __init__(self, largo, delta):
-    elem_xy = largo/delta
+  def __init__(self, id, largo, delta):
+    self.id = id
+    elem_xy = (int)(largo/delta)
     nc = (int)(elem_xy+1)
     self.node_count = nc * nc
-    self.elem_count = (int)(elem_xy)*(elem_xy)
+    self.elem_count = (int)((elem_xy)*(elem_xy))
     print ('Nodes Count: ' + str(self.node_count))
     print ('Elem Count: ' + str(self.node_count))
     y = 0.0
@@ -64,8 +71,8 @@ class Plane_Mesh(Mesh):
         x = x + delta
       y = y + delta
       
-    for ey in range (1,(int)(elem_xy)):    
-      for ex in range (1,(int)(elem_xy)):   
+    for ey in range (elem_xy):    
+      for ex in range (elem_xy):   
         self.elnod.append(((elem_xy+1)*ey+ex+1,(elem_xy+1)*ey + ex+2,(elem_xy+1)*(ey+1)+ex+2,(elem_xy+1)*(ey+1)+ex+1))
                     # elem%elnod(i,:)=[(nel(1)+1)*ey + ex+1,(nel(1)+1)*ey + ex+2,(nel(1)+1)*(ey+1)+ex+2,(nel(1)+1)*(ey+1)+ex+1]         
               # print *, "Element ", i , "Elnod", elem%elnod(i,:) 

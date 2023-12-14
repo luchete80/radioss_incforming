@@ -40,7 +40,7 @@ delta = 0.01
 # shell_nodos = [(0,0,0)]
 shell_elnod = [(1,2,3,4)]
 
-shell_mesh = msh.Plane_Mesh(largo,delta)
+shell_mesh = msh.Plane_Mesh(1,largo,delta)
 
 shell_mesh.printRadioss("radioss.rad")
 
