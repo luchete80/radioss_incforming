@@ -42,6 +42,8 @@ shell_elnod = [(1,2,3,4)]
 
 shell_mesh = msh.Plane_Mesh(1,largo,delta)
 
+sphere_mesh = msh.Sphere_Mesh(10)
+
 shell_mesh.printRadioss("radioss.rad")
 
 #IMPORTANTE: LA VELOCIDAD SE ASUME PARA RADIO CONSTANTE EN CADA VUELTAS
