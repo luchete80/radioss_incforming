@@ -1,5 +1,33 @@
 from math import *
 
+def writeFloatField(number, length, decimals):
+  fmt ='%.' + str(decimals) + 'e'
+  # print ('format ' + fmt)
+  s = fmt % number
+  spaces = ''
+  for i in range ((int)(length - len(s))):
+    spaces = spaces + ' '
+  output = spaces + s
+  # print (spaces + s)
+  return output
+
+def writeIntField(number, length):
+  s = '%d' % number
+  spaces = ''
+  for i in range ((int)(length - len(s))):
+    spaces = spaces + ' '
+  output = spaces + s
+  # print (spaces + s)
+  return output
+
+def Norm2(v):
+  norm = 0.0
+  if isinstance(v, Vector):
+    for i in range (len(v.components)):
+      norm = norm + v.components[i] * v.components[i]
+  return norm
+
+    
 class Vector:
   def __init__(self, *components):
       self.components = components
@@ -33,6 +61,17 @@ class Vector:
     # other.args is the correct analog of self.args
       a = [arg1 + arg2 for arg1, arg2 in zip(self.components, other.components)]
     return self.__class__(*a)
+  def __sub__(self, other):
+    if isinstance(other, Vector):
+    # other.args is the correct analog of self.args
+      a = [arg1 - arg2 for arg1, arg2 in zip(self.components, other.components)]
+    return self.__class__(*a)
+  def Norm():
+    norm = 0.0
+    norm = [norm + arg1 for arg1 in self.components]
+    norm = sqrt (norm)
+    return norm
+    
   def __repr__(self):
       return str(self.components)
       
@@ -55,17 +94,23 @@ class Vector:
     # return new_vec
   # else:
     # raise TypeError("value must be a vector.")
-    
+
+#TODO: CHANGE ALL TO NODE
 class Node(Vector):
   def __init__(self, id, *components):
     self.components = components
     self.id = id
-        
+    
+    
+###############################################################################
+#TODO: DEFINE MESH
 class Mesh:
   node_count = (int) (0.0)
   elem_count = (int) (0.0)
+  print_segments = False
   nodes = []
   elnod = []
+  elcenter = []
   ini_node_id = 0 
   # elnod = [(1,2,3,4)]
   def __init__(self, largo, delta, ininode):
@@ -80,46 +125,69 @@ class Mesh:
   def alloc_nodes(nod_count):
     for i in range (nod_count-1):
       nodes.append((0.,0.,0.))
-
-  def writeFloatField(self,number, length, decimals):
-    fmt ='%.' + str(decimals) + 'e'
-    # print ('format ' + fmt)
-    s = fmt % number
-    spaces = ''
-    for i in range ((int)(length - len(s))):
-      spaces = spaces + ' '
-    output = spaces + s
-    # print (spaces + s)
-    return output
-
-  def writeIntField(self,number, length):
-    s = '%d' % number
-    spaces = ''
-    for i in range ((int)(length - len(s))):
-      spaces = spaces + ' '
-    output = spaces + s
-    # print (spaces + s)
-    return output
-    
+  
+  def printESurfsRadioss(self,f):
+    if (self.print_segments):
+      for i in range (self.elem_count):
+        line = "/SURF/SEG/%d\n" % (i+1)
+        f.write(line)
+        line = writeIntField(i+1,10)
+        for d in range (4):
+          line = line + writeIntField(self.elnod[i][d]+1,10)
+        f.write(line + '\n')
   def printRadioss(self,fname):
     f = open(fname,"w+")
     # self.writeFloatField(-100.0,20,6)
     f.write('/NODES\n')
     for i in range (self.node_count):
-      line = self.writeIntField(i+1,10)
+      line = writeIntField(i+1,10)
       for d in range (3):
-        line = line + self.writeFloatField(self.nodes[i][d],20,6) 
+        line = line + writeFloatField(self.nodes[i][d],20,6) 
       # f.write("%.6e, %.6e\n" % (self.nodes[i][0],self.nodes[i][1]))
       f.write(line + '\n')
     f.write('/SHELL/' + str(self.id) + '\n')
     for i in range (self.elem_count):
-      line = self.writeIntField(i+1,10)
+      line = writeIntField(i+1,10)
       for d in range (4):
-        line = line + self.writeIntField(self.elnod[i][d],10)
+        line = line + writeIntField(self.elnod[i][d]+1,10)
       f.write(line + '\n')
+      
+  def writeCenters(self):
+    print ("Writing centers ")
+    print ("self nodes size ",len(self.nodes))
+    for e in range (self.elem_count):
+      center = [0.,0.,0.]
+      for n in range (4):
+        for dim in range (3):
+          print ("elem ", e, " node ",n, "el node ", self.elnod[e][n])
+          center[dim] = center[dim] + self.nodes[self.elnod[e][n]][dim]
+
+      for dim in range (3):
+        center[dim] = center[dim] / 4.0
+      self.elcenter.append(Vector(center[0], center[1], center[2]))
+    # for e in range (self.elem_count):
+      # print ("Element centers ", self.elcenter[e])
+        # elcenter
+  def findNearestElem(self, x,y,z):
+    mx = -1
+    maxdist = 1000.0
+    for e in range (self.elem_count):
+      pos = Vector(x,y,z)
+      dist = Norm2(pos - self.elcenter[e])
+      # print ("dist: ", dist)
+      if ( dist < maxdist ):
+        maxdist = dist
+        mx = e
+    return mx
 
 class Plane_Mesh(Mesh):
-  def __init__(self, id, largo, delta):
+  ini_node_id = 0 
+  ini_elem_id = 0
+  def set_ini_nod_ele (inin, inie):
+    ini_node_id = inin 
+    ini_elem_id = inie
+  def __init__(self, id, largo, delta, ininode):
+    ini_node_id = ininode
     self.id = id
     elem_xy = (int)(largo/delta)
     nc = (int)(elem_xy+1)
@@ -137,11 +205,13 @@ class Plane_Mesh(Mesh):
       
     for ey in range (elem_xy):    
       for ex in range (elem_xy):   
-        self.elnod.append(((elem_xy+1)*ey+ex+1,(elem_xy+1)*ey + ex+2,(elem_xy+1)*(ey+1)+ex+2,(elem_xy+1)*(ey+1)+ex+1))
+        #THIS IS THE REAL NODE POSITION (FROM ZERO)
+        self.elnod.append(((elem_xy+1)*ey+ex,(elem_xy+1)*ey + ex+1,(elem_xy+1)*(ey+1)+ex+1,(elem_xy+1)*(ey+1)+ex))
                     # elem%elnod(i,:)=[(nel(1)+1)*ey + ex+1,(nel(1)+1)*ey + ex+2,(nel(1)+1)*(ey+1)+ex+2,(nel(1)+1)*(ey+1)+ex+1]         
               # print *, "Element ", i , "Elnod", elem%elnod(i,:) 
     # print(self.elnod)
-
+    self.writeCenters()
+    
 #Based on: https://github.com/caosdoar/spheres/blob/master/src/spheres.cpp 
 #https://medium.com/@oscarsc/four-ways-to-create-a-mesh-for-a-sphere-d7956b825db4
 class Sphere_Mesh(Mesh):
@@ -207,7 +277,7 @@ class Sphere_Mesh(Mesh):
           rx = sqrt(1.0 - 0.5 * (p2.components[1] + p2.components[2]) + p2.components[1]*p2.components[2]/3.0)
           ry = sqrt(1.0 - 0.5 * (p2.components[2] + p2.components[0]) + p2.components[2]*p2.components[0]/3.0)
           rz = sqrt(1.0 - 0.5 * (p2.components[0] + p2.components[1]) + p2.components[0]*p2.components[1]/3.0)
-          print ("rx ry rz", (rx,ry,rz), "\n")
+          # print ("rx ry rz", (rx,ry,rz), "\n")
 				# const Vector3 n
 				# (
 					# p.x * std::sqrt(1.0 - 0.5 * (p2.y + p2.z) + p2.y*p2.z / 3.0),
@@ -241,26 +311,114 @@ def plane_mesh(length, delta, nodos, elnod, mesh):
   print (nodos)
   print (nodos[0][2])
 
+class Prop: 
+  def __init__(self, pid):
+    self.pid = pid
+  def printRadioss(self,f):     
+    f.write("##--------------------------------------------------------------------------------------------------\n")
+    f.write("## Shell Property Set (pid 1)\n")
+    f.write("##--------------------------------------------------------------------------------------------------\n")
+    f.write("/PROP/SHELL/1\n")
+    f.write("SECTION_SHELL:1 TITLE:probe_section  \n")                                                               
+    f.write("#Ishell	Ismstr	Ish3n	Idril	 	 	P_thickfail\n")
+    f.write("         4         2                         \n")                                   
+    f.write("#hm	hf	hr	dm	dn\n")
+    f.write("\n")
+    f.write("#N	Istrain	Thick	Ashear	 	Ithick	Iplas    \n")                                                                                                
+    f.write("         2          5.00000000000000E-04                                       1         1\n")
+             
+             
+         
+#ASSUMING EACH PART HAS ONLY 1 MESH
 class Part:
   def __init__(self, mid):
-    id = mid
-  def AppendMesh(m):
+    self.id = mid
+    self.mesh = []
+    self.title = "PART_ID_%d\n" %mid
+    self.mid = 0
+  def AppendMesh(self,m):
     if (not isinstance(m, Mesh)):
       print ("part is not a mesh")
     else:
       self.mesh.append(m)
+  
+  def printRadioss(self,f):                          
+    f.write('/SHELL/' + str(self.id) + '\n')
+    for i in range (self.mesh[0].elem_count):
+      line = writeIntField(i+1,10)
+      for d in range (4):
+        line = line + writeIntField(self.mesh[0].elnod[i][d],10)
+      f.write(line + '\n')   
+    line = "/PART/%d\n" % self.id
+    f.write(line)
+    f.write(self.title)                                                                                            
+    f.write("#     pid     mid\n")
+    f.write("      1         2\n")    
+    if (self.mesh[0].print_segments):
+      self.mesh[0].printESurfsRadioss(f)
       
-class DSIFModel:
+class Material:
+  def __init__(self, mid):
+    id = mid
+  def printRadioss(self,f):
+    f.write("/MAT/COWPER/2\n")  
+    f.write("MAT_PIECEWISE_LINEAR_PLASTICITY:2 TITLE:mat_probe   \n")                                                  
+    f.write("              7850.0\n")  
+    f.write("      200000000000.0                0.33\n")  
+    f.write("        300000000.0        2000000000.0                 1.0                 0.01.00000000000000E+30\n")  
+    f.write("                0.0                 0.0         1         11.00000000000000E+30\n")  
+    f.write("1.00000000000000E+211.00000000000000E+302.10000000000000E+30\n")  
+    f.write("#/HEAT/MAT/mat_ID/unit_ID\n")
+    f.write("/HEAT/MAT/2\n")
+    f.write("#                 T0             RHO0_CP                  AS                  BS     IFORM\n")
+    f.write("              20.0                 2.5e6               420.0                  0.0        1\n")
+    f.write(" \n") #REQUIRED
+
+class Function:
+  val_count = 0 
+  def __init__(self, id, x,y):
+    self.val_count = 1
+    self.vals = []
+    self.vals.append((x,y))
+  def Append (self,x,y):
+    self.vals.append((x,y))
+    self.val_count = self.val_count + 1
+  def getVal(self, i):
+    return self.vals[i]
+  def getVal_ij(self, i, j):
+    return self.vals[i][j]
+    
+    
+class Model:
   def __init__(self):
     self.part_count = 0
     self.part = []
+    self.mat = []
+    self.prop = []
+    self.load_fnc = []
+    
   
-  def AppendPart(p):
+  def AppendPart(self, p):
     if (not isinstance(p, Part)):
       print ("ERROR: added opbject is not a part ")
     else:
       self.part.append(p)
       self.part_count = self.part_count + 1
+
+  def AppendMat(self, m):
+    if (not isinstance(m, Material)):
+      print ("ERROR: added opbject is not a part ")
+    else:
+      self.mat.append(m)
+
+  def AppendLoadFunction(self, lf):
+    self.load_fnc.append(lf)
+    
+  def AppendProp(self, p):
+    if (not isinstance(p, Prop)):
+      print ("ERROR: added opbject is not a part ")
+    else:
+      self.mat.append(p)
       
   def printRadioss(self,fname):
     f = open(fname,"w+")
@@ -271,16 +429,32 @@ class DSIFModel:
     f.write("                  kg                   m                   s\n")
     f.write("                  kg                   m                   s\n")
     f.write('/NODE\n')
-    for i in range (self.node_count):
-      line = self.writeIntField(i+1,10)
-      for d in range (3):
-        line = line + self.writeFloatField(self.nodes[i][d],20,6) 
-    f.write(line + '\n')
-    
-    for p in range(part_count):
-      f.write('/SHELL/' + str(self.id) + '\n')
-      for i in range (self.elem_count):
-        line = self.writeIntField(i+1,10)
-        for d in range (4):
-          line = line + self.writeIntField(self.elnod[i][d],10)
+    for p in range (self.part_count):
+      print ("part node count ", self.part[p].mesh[0].node_count)
+      for i in range (self.part[p].mesh[0].node_count):
+        line = writeIntField(i+1,10)
+        for d in range (3):
+          line = line + writeFloatField(self.part[p].mesh[0].nodes[i][d],20,6) 
         f.write(line + '\n')
+
+      self.part[p].printRadioss(f)
+    
+    print ("printing materials: ", len(self.mat))
+    for m in range (len(self.mat)):
+      self.mat[m].printRadioss(f)
+    
+    # f.write("include thermal.inc\n")
+    print ("Load function count: ", len(self.load_fnc))
+    ### LOAD FNC
+    for lf in range (len(self.load_fnc)):
+      # print ("fn ", self.load_fnc[lf][0], "\n")
+      line = "/FUNC/SEG/%d\n" % (lf+1)
+      line = line + "F_ELEM_%d\n" % (lf+1)
+      for val in range (self.load_fnc[lf].val_count):
+        line = line + writeFloatField(self.load_fnc[lf].getVal(val)[0],20,6) + \
+                      writeFloatField(self.load_fnc[lf].getVal(val)[1],20,6) + "\n"
+      f.write(line)
+      
+    for p in range(len(self.prop)):
+      self.mat[p].printRadioss(f)
+    f.write('/END\n')
