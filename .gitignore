@@ -3,3 +3,4 @@ __pycache__/
 mov*.csv
 *.out
 *.rad
+testA*
