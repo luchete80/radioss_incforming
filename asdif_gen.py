@@ -113,7 +113,7 @@ def save(lin):
   ######################## VUELTAS ##############################
   while (t < t_end):
     t_ang = 2.0 * pi * r / tool_speed #Tiempo (incremento) de cada vuelta (ASUMIENDO RADIO CONSTANTE)
-    # print("Turn %d Turn Time %.3e Time %.3e Radius %.3e\n" %(turn, t_ang,t,r))
+    print("Turn %d Turn Time %.3e Time %.3e Radius %.3e\n" %(turn, t_ang,t,r))
     t_vuelta = t + t_ang  #Tiempo de final de vuelta (TOTAL)
     t_0 = t               #Tiempo de comienzo de vuelta
     t_inc = 0.0           # t - t_0
@@ -142,27 +142,25 @@ def save(lin):
       
       t_inc +=dt
       t += dt
+
+      if (thermal):
+        e = model.part[0].mesh[0].findNearestElem(xi,yi,zi)
+        # print ("TIM ", t, ", pos: ", xi, yi, zi, ", Found ", e , "\n")
+        model.load_fnc[e].Append(t,1.0e6)
       
     r +=dr
     turn += 1    
     
-    if (thermal):
-      e = model.part[0].mesh[0].findNearestElem(xi,yi,zi)
-      # print ("TIM ", t, ", pos: ", xi, yi, zi, ", Found ", e , "\n")
-      model.load_fnc[e].Append(t,1.0e6)
 
   #SPRINGBACK
   fi_x.close;fi_y.close;fi_z.close
   fo_x.close;fo_y.close;fo_z.close
 
-  # print("End zi %.3e, zo %.3e" % (zi,zo))
 
-
-  # for e in range (model.part[0].mesh[0].elem_count):
-  for e in range (10):
-    # for f in range (len(load_function[e])):
-    for f in range (model.load_fnc[e].val_count):
-      print ("Load Fnction ", e, model.load_fnc[e].getVal(f))
+  # for e in range (10):
+    # # for f in range (len(load_function[e])):
+    # for f in range (model.load_fnc[e].val_count):
+      # print ("Load Fnction ", e, model.load_fnc[e].getVal(f))
     
   model.printRadioss("test_0000.rad")
 
