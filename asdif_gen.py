@@ -40,11 +40,13 @@ delta = 0.01
 # shell_nodos = [(0,0,0)]
 shell_elnod = [(1,2,3,4)]
 
-shell_mesh = msh.Plane_Mesh(1,largo,delta)
+# shell_mesh = msh.Plane_Mesh(1,largo,delta)
 
-sphere_mesh = msh.Sphere_Mesh(10)
+sphere_mesh = msh.Sphere_Mesh(2,1.0, 10,1) #(self, id, radius, divisions, ininode):
 
-shell_mesh.printRadioss("radioss.rad")
+# shell_mesh.printRadioss("radioss.rad")
+
+sphere_mesh.printRadioss("radioss.rad")
 
 #IMPORTANTE: LA VELOCIDAD SE ASUME PARA RADIO CONSTANTE EN CADA VUELTAS
 #CON LO CUAL EN LA REALIDAD DISMINUYE UN POCO
