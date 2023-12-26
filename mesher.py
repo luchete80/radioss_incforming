@@ -111,14 +111,14 @@ class Mesh:
   nodes = []
   elnod = []
   elcenter = []
-  ini_node_id = 0 
+  ini_node_id = 1
+  ini_elem_id = 1
   # elnod = [(1,2,3,4)]
-  def __init__(self, largo, delta, ininode):
+  def __init__(self, largo, delta):
     elem_xy = largo/delta
     self.node_count = (int)(elem_xy)
       # self.r = realpart
       # self.i = imagpart
-    ini_node_id = ininode
   def __init__(self):
     self.data = []
     
@@ -154,12 +154,12 @@ class Mesh:
       
   def writeCenters(self):
     print ("Writing centers ")
-    print ("self nodes size ",len(self.nodes))
+    # print ("self nodes size ",len(self.nodes))
     for e in range (self.elem_count):
       center = [0.,0.,0.]
       for n in range (4):
         for dim in range (3):
-          print ("elem ", e, " node ",n, "el node ", self.elnod[e][n])
+          # print ("elem ", e, " node ",n, "el node ", self.elnod[e][n])
           center[dim] = center[dim] + self.nodes[self.elnod[e][n]][dim]
 
       for dim in range (3):
@@ -181,13 +181,12 @@ class Mesh:
     return mx
 
 class Plane_Mesh(Mesh):
-  ini_node_id = 0 
-  ini_elem_id = 0
+  ini_node_id = 1 
+  ini_elem_id = 1
   def set_ini_nod_ele (inin, inie):
     ini_node_id = inin 
     ini_elem_id = inie
-  def __init__(self, id, largo, delta, ininode):
-    ini_node_id = ininode
+  def __init__(self, id, largo, delta):
     self.id = id
     elem_xy = (int)(largo/delta)
     nc = (int)(elem_xy+1)
@@ -216,10 +215,11 @@ class Plane_Mesh(Mesh):
 #https://medium.com/@oscarsc/four-ways-to-create-a-mesh-for-a-sphere-d7956b825db4
 class Sphere_Mesh(Mesh):
  
-  def __init__(self, id, radius, divisions, ininode):
+  def __init__(self, id, radius, divisions):
+    print ("Creating Sphere mesh")
     self.id = id
-    ini_node_id = ininode
-    CubeToSphere_origins = [Vector(-1.0, -1.0, -1.0),
+    CubeToSphere_origins = [
+    Vector(-1.0, -1.0, -1.0),
     Vector(1.0, -1.0, -1.0),
     Vector(1.0, -1.0, 1.0),
     Vector(-1.0, -1.0, 1.0),
@@ -240,16 +240,11 @@ class Sphere_Mesh(Mesh):
 		Vector(0.0, 0.0, 2.0),
 		Vector(0.0, 0.0, -2.0) ]
     step = 1.0 / divisions
-    self.node_count = 1
     step3 = Vector(step, step, step)
 
-    right = CubeToSphere_rights[0]
-    # right = Vector(0)
-    # print (right)
-    # print (step3)
     test = Vector (0.,0.,0.)
     n = 0
-    for face in range (6):
+    for face in range (1): #CUBE FACES 
       origin = CubeToSphere_origins[face]
       right = CubeToSphere_rights[face]
       # print (right)
@@ -258,7 +253,7 @@ class Sphere_Mesh(Mesh):
         j3 = Vector(j,j,j)
         for i in range (divisions+1):
           i3 = Vector(i,i,i)
-          # print ("right ")
+          print ("i3 j3 ", i3, j3)
           # print (right)
           # print ("origin ")
           # print (origin)
@@ -269,14 +264,15 @@ class Sphere_Mesh(Mesh):
           # test = right + up  
           # print (test)
           # const Vector3 p = origin + step3 * (i3 * right + j3 * up);
-          p = origin + ( step3 * (right * i3 + up *j3 )  )
+          p = origin + ( step3 * (i3 * right  + up *j3 )  )
           p2 = p * p
+          print ("p ", p)
           # rx = sqrt(1.0 - 0.5 * (p2.y + p2.z) + p2.y*p2.z/3.0)
           # ry = sqrt(1.0 - 0.5 * (p2.z + p2.x) + p2.z*p2.x/3.0)
           # rz = sqrt(1.0 - 0.5 * (p2.x + p2.y) + p2.x*p2.y/3.0)
-          rx = sqrt(1.0 - 0.5 * (p2.components[1] + p2.components[2]) + p2.components[1]*p2.components[2]/3.0)
-          ry = sqrt(1.0 - 0.5 * (p2.components[2] + p2.components[0]) + p2.components[2]*p2.components[0]/3.0)
-          rz = sqrt(1.0 - 0.5 * (p2.components[0] + p2.components[1]) + p2.components[0]*p2.components[1]/3.0)
+          rx = p.components[0] * sqrt(1.0 - 0.5 * (p2.components[1] + p2.components[2]) + p2.components[1]*p2.components[2]/3.0)
+          ry = p.components[1] * sqrt(1.0 - 0.5 * (p2.components[2] + p2.components[0]) + p2.components[2]*p2.components[0]/3.0)
+          rz = p.components[1] *sqrt(1.0 - 0.5 * (p2.components[0] + p2.components[1]) + p2.components[0]*p2.components[1]/3.0)
           # print ("rx ry rz", (rx,ry,rz), "\n")
 				# const Vector3 n
 				# (
@@ -286,6 +282,7 @@ class Sphere_Mesh(Mesh):
 				# );
 				# mesh.vertices.emplace_back(n);
           self.nodes.append((rx,ry,rz))
+          print ("Sphere rx ry rz", rx,ry,rz)
           n = n +1
     print ("generated: %d", n , " nodes      ")
     self.node_count = n
@@ -295,9 +292,10 @@ class Sphere_Mesh(Mesh):
     for ey in range (divisions):
       for ex in range (divisions):
         # elem%elnod(i,:)=[(nel(1)+1)*ey + ex+1,(nel(1)+1)*ey + ex+2,(nel(1)+1)*(ey+1)+ex+2,(nel(1)+1)*(ey+1)+ex+1]  
-        self.elnod.append(((divisions+1)*ey+ex+1,(divisions+1)*ey + ex+2,(divisions+1)*(ey+1)+ex+2,(divisions+1)*(ey+1)+ex+1))      
+        self.elnod.append(((divisions+1)*ey+ex,(divisions+1)*ey + ex+1,(divisions+1)*(ey+1)+ex+1,(divisions+1)*(ey+1)+ex))      
         e = e + 1
     self.elem_count = e
+    
 import numpy as np
 
 def plane_mesh(length, delta, nodos, elnod, mesh):
@@ -345,9 +343,10 @@ class Part:
   def printRadioss(self,f):                          
     f.write('/SHELL/' + str(self.id) + '\n')
     for i in range (self.mesh[0].elem_count):
-      line = writeIntField(i+1,10)
+      line = writeIntField(i + self.mesh[0].ini_elem_id ,10)
       for d in range (4):
-        line = line + writeIntField(self.mesh[0].elnod[i][d],10)
+        # print (self.mesh[0].ini_node_id, ", ")
+        line = line + writeIntField(self.mesh[0].elnod[i][d] + self.mesh[0].ini_node_id,10)
       f.write(line + '\n')   
     line = "/PART/%d\n" % self.id
     f.write(line)
@@ -390,6 +389,9 @@ class Function:
     
     
 class Model:
+  tot_nod_count = 0
+  tot_ele_count = 0
+  thermal = False
   def __init__(self):
     self.part_count = 0
     self.part = []
@@ -400,10 +402,19 @@ class Model:
   
   def AppendPart(self, p):
     if (not isinstance(p, Part)):
-      print ("ERROR: added opbject is not a part ")
+      print ("ERROR: added object is not a part ")
     else:
       self.part.append(p)
       self.part_count = self.part_count + 1
+      print ("part count ", self.part_count)
+      if (self.part_count > 1):
+        self.tot_nod_count = self.tot_nod_count + self.part[self.part_count-2].mesh[0].node_count
+        self.part[self.part_count-1].mesh[0].ini_node_id = self.tot_nod_count + 1
+        
+        self.tot_ele_count = self.tot_ele_count + self.part[self.part_count-2].mesh[0].elem_count
+        self.part[self.part_count-1].mesh[0].ini_elem_id = self.tot_ele_count + 1
+        
+    print ("Part ", self.part_count, " initial node: ", self.tot_nod_count + 1)
 
   def AppendMat(self, m):
     if (not isinstance(m, Material)):
@@ -430,38 +441,42 @@ class Model:
     f.write("                  kg                   m                   s\n")
     f.write('/NODE\n')
     for p in range (self.part_count):
-      print ("part node count ", self.part[p].mesh[0].node_count)
+      # print ("part node count ", self.part[p].mesh[0].node_count)
       for i in range (self.part[p].mesh[0].node_count):
-        line = writeIntField(i+1,10)
+        print ("Node ", self.part[p].mesh[0].nodes[i])
+        line = writeIntField(i + self.part[p].mesh[0].ini_node_id,10)
         for d in range (3):
           line = line + writeFloatField(self.part[p].mesh[0].nodes[i][d],20,6) 
         f.write(line + '\n')
 
+    # Print element connectivity
+    for p in range (self.part_count):
       self.part[p].printRadioss(f)
     
     print ("printing materials: ", len(self.mat))
     for m in range (len(self.mat)):
       self.mat[m].printRadioss(f)
     
-    # f.write("include thermal.inc\n")
-    print ("Load function count: ", len(self.load_fnc))
-    ### LOAD FNC
-    for lf in range (len(self.load_fnc)):
-      # print ("fn ", self.load_fnc[lf][0], "\n")
-      line = "/FUNCT/%d\n" % (lf+1)
-      line = line + "F_ELEM_%d\n" % (lf+1)
-      for val in range (self.load_fnc[lf].val_count):
-        line = line + writeFloatField(self.load_fnc[lf].getVal(val)[0],20,6) + \
-                      writeFloatField(self.load_fnc[lf].getVal(val)[1],20,6) + "\n"
-      f.write(line)
+    if (self.thermal):
+      # f.write("include thermal.inc\n")
+      print ("Load function count: ", len(self.load_fnc))
+      ### LOAD FNC
+      for lf in range (len(self.load_fnc)):
+        # print ("fn ", self.load_fnc[lf][0], "\n")
+        line = "/FUNCT/%d\n" % (lf+1)
+        line = line + "F_ELEM_%d\n" % (lf+1)
+        for val in range (self.load_fnc[lf].val_count):
+          line = line + writeFloatField(self.load_fnc[lf].getVal(val)[0],20,6) + \
+                        writeFloatField(self.load_fnc[lf].getVal(val)[1],20,6) + "\n"
+        f.write(line)
 
-    f.write("################################### ELEMENT FLUXES #####################################\n")
-    for lf in range (len(self.load_fnc)):
-      # print ("fn ", self.load_fnc[lf][0], "\n")
-      line = "/IMPFLUX/%d\nFLUX_ELEM%d\n" % (lf+1,lf+1)
-      line = line + writeIntField(lf+1,10)+ writeIntField(lf+1,10) + "\n"
-      line = line + "       1.0       1.0\n"
-      f.write(line)
+      f.write("################################### ELEMENT FLUXES #####################################\n")
+      for lf in range (len(self.load_fnc)):
+        # print ("fn ", self.load_fnc[lf][0], "\n")
+        line = "/IMPFLUX/%d\nFLUX_ELEM%d\n" % (lf+1,lf+1)
+        line = line + writeIntField(lf+1,10)+ writeIntField(lf+1,10) + "\n"
+        line = line + "       1.0       1.0\n"
+        f.write(line)
       
     for p in range(len(self.prop)):
       self.mat[p].printRadioss(f)

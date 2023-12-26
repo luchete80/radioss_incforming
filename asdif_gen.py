@@ -8,6 +8,8 @@ from tkinter.ttk import Combobox
 window=Tk()
 linea_g=10
 
+flog = open("log.txt","w")
+
 #IMPORTANTE - ACA ESTA DEFINIDO TOOL SPEED
 #INPUT VARS
 #VER COMO ACOMODAR CON ALFA Y BETA ANGULOS
@@ -24,7 +26,7 @@ tool_speed  = 0.6 / 60.0 * 5000 #600mm/min according to Valoppi
 t_ind       = 1.0e-3
 thck        = 5.0e-4
 
-thermal     = True
+thermal     = False
 
 
 filelbl = Label(window, text="Archivo", width=15,justify=LEFT)
@@ -38,27 +40,32 @@ test.append((3,4))
 print (test)
 print (test[2][0])
 #############################################################################################################################################
-largo = 0.3
-delta = 0.01
+largo = 0.1
+delta = 0.005
 # shell_nodos = [(0,0,0)]
 shell_elnod = [(1,2,3,4)]
 
-shell_mesh = msh.Plane_Mesh(1,largo,delta,1)
-sph1_mesh = msh.Sphere_Mesh(2,1.0, 10,1) #(self, id, radius, divisions, ininode):
+# shell_mesh = msh.Plane_Mesh(1,largo,delta)
+sph1_mesh = msh.Sphere_Mesh(2,1.0, 10) #(id, radius, divisions):
+
 
 model = msh.Model()
-shell = msh.Part(1)
-shell.AppendMesh(shell_mesh) 
+print ("Model size: ", len(model.part))
+# shell = msh.Part(1)
+# shell.AppendMesh(shell_mesh) 
 
 sph1_pt = msh.Part(2)
 sph1_pt.AppendMesh(sph1_mesh) 
 
-model.AppendPart(shell)
-# model.AppendPart(sph1_pt)
+# model.AppendPart(shell)
+model.AppendPart(sph1_pt)
 model.AppendMat(msh.Material(1))
 model.AppendProp(msh.Prop(1))
 
 model.part[0].mesh[0].print_segments = True
+
+if (thermal):
+  model.thermal = True
 
 # THERMAL
 for e in range (model.part[0].mesh[0].elem_count):
@@ -143,11 +150,12 @@ def save(lin):
       t_inc +=dt
       t += dt
 
-      if (thermal):
-        e = model.part[0].mesh[0].findNearestElem(xi,yi,zi)
-        # print ("TIM ", t, ", pos: ", xi, yi, zi, ", Found ", e , "\n")
-        # print ("baricenter: ", model.part[0].mesh[0].elcenter[e],"\n")  
-        model.load_fnc[e].Append(t,1.0e6)
+      # if (thermal):
+        # e = model.part[0].mesh[0].findNearestElem(xi,yi,zi)
+        # flog.write ("TIME %f, pos: %.6e %.6e, Found %d\n" % (t, xi, yi, e ))
+        # coord = str (model.part[0].mesh[0].elcenter[e].components)
+        # flog.write ("baricenter: %s\n" %(coord))  
+        # model.load_fnc[e].Append(t,1.0e6)
       
     r +=dr
     turn += 1    
