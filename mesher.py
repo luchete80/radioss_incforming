@@ -129,7 +129,7 @@ class Mesh:
   def printESurfsRadioss(self,f):
     if (self.print_segments):
       for i in range (self.elem_count):
-        line = "/SURF/SEG/%d\n" % (i+1)
+        line = "/SURF/SEG/%d\nSURF_SEG_%d\n" % (i+1,i+1)
         f.write(line)
         line = writeIntField(i+1,10)
         for d in range (4):
@@ -195,9 +195,9 @@ class Plane_Mesh(Mesh):
     self.elem_count = (int)((elem_xy)*(elem_xy))
     print ('Nodes Count: ' + str(self.node_count))
     print ('Elem Count: ' + str(self.node_count))
-    y = 0.0
+    y = -largo/2.0
     for j in range (nc):
-      x = 0.0
+      x = -largo/2.0
       for i in range (nc):
         self.nodes.append((x,y,0.))
         x = x + delta
@@ -448,11 +448,19 @@ class Model:
     ### LOAD FNC
     for lf in range (len(self.load_fnc)):
       # print ("fn ", self.load_fnc[lf][0], "\n")
-      line = "/FUNC/SEG/%d\n" % (lf+1)
+      line = "/FUNCT/%d\n" % (lf+1)
       line = line + "F_ELEM_%d\n" % (lf+1)
       for val in range (self.load_fnc[lf].val_count):
         line = line + writeFloatField(self.load_fnc[lf].getVal(val)[0],20,6) + \
                       writeFloatField(self.load_fnc[lf].getVal(val)[1],20,6) + "\n"
+      f.write(line)
+
+    f.write("################################### ELEMENT FLUXES #####################################\n")
+    for lf in range (len(self.load_fnc)):
+      # print ("fn ", self.load_fnc[lf][0], "\n")
+      line = "/IMPFLUX/%d\nFLUX_ELEM%d\n" % (lf+1,lf+1)
+      line = line + writeIntField(lf+1,10)+ writeIntField(lf+1,10) + "\n"
+      line = line + "       1.0       1.0\n"
       f.write(line)
       
     for p in range(len(self.prop)):

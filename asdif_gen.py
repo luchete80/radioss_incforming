@@ -146,12 +146,15 @@ def save(lin):
       if (thermal):
         e = model.part[0].mesh[0].findNearestElem(xi,yi,zi)
         # print ("TIM ", t, ", pos: ", xi, yi, zi, ", Found ", e , "\n")
+        # print ("baricenter: ", model.part[0].mesh[0].elcenter[e],"\n")  
         model.load_fnc[e].Append(t,1.0e6)
       
     r +=dr
     turn += 1    
     
-
+  for e in range (model.part[0].mesh[0].elem_count):  
+    model.load_fnc[e].Append(1.0e3,0.0)
+  
   #SPRINGBACK
   fi_x.close;fi_y.close;fi_z.close
   fo_x.close;fo_y.close;fo_z.close
