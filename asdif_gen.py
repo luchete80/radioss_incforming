@@ -1,6 +1,6 @@
 #https://www.tutorialsteacher.com/python/create-ui-using-tkinter-in-python
 from math import *
-import mesher as msh
+from mesher import *
 import numpy as np
 
 from tkinter import *
@@ -42,25 +42,35 @@ print (test[2][0])
 #############################################################################################################################################
 largo = 0.1
 delta = 0.005
-# shell_nodos = [(0,0,0)]
+
 shell_elnod = [(1,2,3,4)]
 
-# shell_mesh = msh.Plane_Mesh(1,largo,delta)
-sph1_mesh = msh.Sphere_Mesh(2,1.0, 10) #(id, radius, divisions):
+shell_mesh = Plane_Mesh(1,largo,delta)
+sph1_mesh = Sphere_Mesh(2,1.0, 10) #(id, radius, divisions):
+
+print("Piece Shell node count", len(shell_mesh.nodes))
+print("Shell Shell node count", len(sph1_mesh.nodes))
+
+print("Shell node count var", shell_mesh.node_count)
+print("Sphere node count var", sph1_mesh.node_count)
 
 
-model = msh.Model()
+# print("Shell node count", len(shell_mesh.elnod))
+# print("Shell node count", len(sph1_mesh.elnod))
+
+model = Model()
 print ("Model size: ", len(model.part))
-# shell = msh.Part(1)
-# shell.AppendMesh(shell_mesh) 
+shell = Part(1)
+shell.AppendMesh(shell_mesh) 
 
-sph1_pt = msh.Part(2)
+sph1_pt = Part(2)
 sph1_pt.AppendMesh(sph1_mesh) 
 
-# model.AppendPart(shell)
+model.AppendPart(shell) #FIRST PART TO ADD!
 model.AppendPart(sph1_pt)
-model.AppendMat(msh.Material(1))
-model.AppendProp(msh.Prop(1))
+
+model.AppendMat(Material(1))
+model.AppendProp(Prop(1))
 
 model.part[0].mesh[0].print_segments = True
 
@@ -69,9 +79,9 @@ if (thermal):
 
 # THERMAL
 for e in range (model.part[0].mesh[0].elem_count):
-  lf = msh.Function(0.0,.0,0)
+  lf = Function(0.0,.0,0)
   model.AppendLoadFunction (lf)
-# sphere_mesh = msh.Sphere_Mesh(2,1.0, 10,1) #(self, id, radius, divisions, ininode):
+# sphere_mesh = Sphere_Mesh(2,1.0, 10,1) #(self, id, radius, divisions, ininode):
 
 # shell_mesh.printRadioss("radioss.rad")
 

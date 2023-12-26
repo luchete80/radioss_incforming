@@ -183,6 +183,9 @@ class Mesh:
 class Plane_Mesh(Mesh):
   ini_node_id = 1 
   ini_elem_id = 1
+  nodes = []
+  elnod = []
+  elcenter = []
   def set_ini_nod_ele (inin, inie):
     ini_node_id = inin 
     ini_elem_id = inie
@@ -214,7 +217,9 @@ class Plane_Mesh(Mesh):
 #Based on: https://github.com/caosdoar/spheres/blob/master/src/spheres.cpp 
 #https://medium.com/@oscarsc/four-ways-to-create-a-mesh-for-a-sphere-d7956b825db4
 class Sphere_Mesh(Mesh):
- 
+  #NECESSARY TO CREATE SEPARATED NEW LISTS!
+  nodes = []
+  elnod = [] 
   def __init__(self, id, radius, divisions):
     print ("Creating Sphere mesh")
     self.id = id
@@ -253,7 +258,7 @@ class Sphere_Mesh(Mesh):
         j3 = Vector(j,j,j)
         for i in range (divisions+1):
           i3 = Vector(i,i,i)
-          print ("i3 j3 ", i3, j3)
+          # print ("i3 j3 ", i3, j3)
           # print (right)
           # print ("origin ")
           # print (origin)
@@ -266,7 +271,6 @@ class Sphere_Mesh(Mesh):
           # const Vector3 p = origin + step3 * (i3 * right + j3 * up);
           p = origin + ( step3 * (i3 * right  + up *j3 )  )
           p2 = p * p
-          print ("p ", p)
           # rx = sqrt(1.0 - 0.5 * (p2.y + p2.z) + p2.y*p2.z/3.0)
           # ry = sqrt(1.0 - 0.5 * (p2.z + p2.x) + p2.z*p2.x/3.0)
           # rz = sqrt(1.0 - 0.5 * (p2.x + p2.y) + p2.x*p2.y/3.0)
@@ -282,11 +286,15 @@ class Sphere_Mesh(Mesh):
 				# );
 				# mesh.vertices.emplace_back(n);
           self.nodes.append((rx,ry,rz))
-          print ("Sphere rx ry rz", rx,ry,rz)
+          # print ("Sphere rx ry rz", rx,ry,rz)
           n = n +1
-    print ("generated: %d", n , " nodes      ")
+    # print ("generated: %d", n , " nodes      ")
+    # print ("Node vector count: ", len(self.nodes))
     self.node_count = n
       # print (origin)
+    
+    # for i in range (self.node_count):
+      # print ("SPHERE Node ", i, self.nodes[i])
     
     e = 0
     for ey in range (divisions):
