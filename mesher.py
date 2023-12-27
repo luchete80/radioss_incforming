@@ -113,6 +113,7 @@ class Mesh:
   elcenter = []
   ini_node_id = 1
   ini_elem_id = 1
+  id = 0
   # elnod = [(1,2,3,4)]
   def __init__(self, largo, delta):
     elem_xy = largo/delta
@@ -151,7 +152,16 @@ class Mesh:
       for d in range (4):
         line = line + writeIntField(self.elnod[i][d]+1,10)
       f.write(line + '\n')
-      
+  
+  def printRigidRadioss(self,f): #ALREADY OPENED
+    f.write("/RBODY/%d\n"%(100))
+    f.write("PART_%d\n"%(self.id))
+    f.write("#---1----|----2----|----3----|----4----|----5----|----6----|----7----|----8----|----9----|---10----|\n");
+    f.write("# node_ID    sens_ID	  Skew_ID	   Ispher	               Mass	  grnd_ID	    Ikrem	     ICoG	  surf_ID\n");
+    line = writeIntField(self.ini_node_id + self.node_count - 1, 10) + "                                                  " #50 spaces
+    line = line + writeIntField(self.id,10) + "\n"
+    f.write(line)
+    f.write("\n\n\n") # 3 more line needed for RBODY COMMAND
   def writeCenters(self):
     print ("Writing centers ")
     # print ("self nodes size ",len(self.nodes))
@@ -220,7 +230,7 @@ class Sphere_Mesh(Mesh):
   #NECESSARY TO CREATE SEPARATED NEW LISTS!
   nodes = []
   elnod = [] 
-  def __init__(self, id, radius, divisions):
+  def __init__(self, id, radius, ox,oy,oz, divisions):
     print ("Creating Sphere mesh")
     self.id = id
     CubeToSphere_origins = [
@@ -277,20 +287,21 @@ class Sphere_Mesh(Mesh):
           rx = p.components[0] * sqrt(1.0 - 0.5 * (p2.components[1] + p2.components[2]) + p2.components[1]*p2.components[2]/3.0)
           ry = p.components[1] * sqrt(1.0 - 0.5 * (p2.components[2] + p2.components[0]) + p2.components[2]*p2.components[0]/3.0)
           rz = p.components[2] * sqrt(1.0 - 0.5 * (p2.components[0] + p2.components[1]) + p2.components[0]*p2.components[1]/3.0)
-          # print ("rx ry rz", (rx,ry,rz), "\n")
-				# const Vector3 n
-				# (
-					# p.x * std::sqrt(1.0 - 0.5 * (p2.y + p2.z) + p2.y*p2.z / 3.0),
-					# p.y * std::sqrt(1.0 - 0.5 * (p2.z + p2.x) + p2.z*p2.x / 3.0),
-					# p.z * std::sqrt(1.0 - 0.5 * (p2.x + p2.y) + p2.x*p2.y / 3.0)
-				# );
-				# mesh.vertices.emplace_back(n);
-          self.nodes.append((rx,ry,rz))
-          # print ("Sphere rx ry rz", rx,ry,rz)
+          
+          x = rx * radius + ox;           y = ry * radius + oy ;           z = rz * radius + oz;
+          print ("z , z corrected ", rz,z)
+          #self.nodes.append((rx,ry,rz))
+          self.nodes.append((x,y,z))
+          
           n = n +1
+    
+    
+    self.nodes.append((ox,oy,oz)) #CENTER AS RIGID PIVOT
+    self.node_count = n + 1
+    
     # print ("generated: %d", n , " nodes      ")
     # print ("Node vector count: ", len(self.nodes))
-    self.node_count = n
+    
       # print (origin)
     
     # for i in range (self.node_count):
@@ -335,35 +346,7 @@ class Prop:
              
              
          
-#ASSUMING EACH PART HAS ONLY 1 MESH
-class Part:
-  def __init__(self, mid):
-    self.id = mid
-    self.mesh = []
-    self.title = "PART_ID_%d\n" %mid
-    self.mid = 0
-  def AppendMesh(self,m):
-    if (not isinstance(m, Mesh)):
-      print ("part is not a mesh")
-    else:
-      self.mesh.append(m)
-  
-  def printRadioss(self,f):                          
-    f.write('/SHELL/' + str(self.id) + '\n')
-    for i in range (self.mesh[0].elem_count):
-      line = writeIntField(i + self.mesh[0].ini_elem_id ,10)
-      for d in range (4):
-        # print (self.mesh[0].ini_node_id, ", ")
-        line = line + writeIntField(self.mesh[0].elnod[i][d] + self.mesh[0].ini_node_id,10)
-      f.write(line + '\n')   
-    line = "/PART/%d\n" % self.id
-    f.write(line)
-    f.write(self.title)                                                                                            
-    f.write("#     pid     mid\n")
-    f.write("      1         2\n")    
-    if (self.mesh[0].print_segments):
-      self.mesh[0].printESurfsRadioss(f)
-      
+     
 class Material:
   def __init__(self, mid):
     id = mid
@@ -394,8 +377,69 @@ class Function:
     return self.vals[i]
   def getVal_ij(self, i, j):
     return self.vals[i][j]
+
+#ASSUMING EACH PART HAS ONLY 1 MESH
+class Part:
+  is_rigid = False
+  is_moving = False
+  id_grn_move = 0 #GROUP NODE FOR MOVING
+  def __init__(self, mid):
+    self.id = mid
+    self.mesh = []
+    self.title = "PART_ID_%d\n" %mid
+    self.mid = 0
+    self.id_grn_move = mid + 100
+  def AppendMesh(self,m):
+    if (not isinstance(m, Mesh)):
+      print ("part is not a mesh")
+    else:
+      self.mesh.append(m)
+  
+  def printRadioss(self,f):                          
+    f.write('/SHELL/' + str(self.id) + '\n')
+    for i in range (self.mesh[0].elem_count):
+      line = writeIntField(i + self.mesh[0].ini_elem_id ,10)
+      for d in range (4):
+        # print (self.mesh[0].ini_node_id, ", ")
+        line = line + writeIntField(self.mesh[0].elnod[i][d] + self.mesh[0].ini_node_id,10)
+      f.write(line + '\n')   
     
+    line = "/PART/%d\n" % self.id
+    f.write(line)
+    f.write(self.title)                                                                                            
+    f.write("#     pid     mid\n")
+    f.write("      1         2\n") 
+    line = "/GRNOD/PART/%d\n" % self.id    
+    line = line + "PART_%d\n" % self.id
+    line = line + writeIntField(self.id,10) + "\n"
+    f.write(line)
     
+    #GRNOD FOR MOVE 
+    if (self.is_moving):
+      line = "/GRNOD/NODE/%d\n" % self.id_grn_move    
+      line = line + "MOVE_%d\n" % self.id
+      line = line + writeIntField(self.mesh[0].ini_node_id + self.mesh[0].node_count - 1, 10) + "\n"
+      f.write(line)
+
+      line = "/BCS/%d\n" % self.id
+      line = line + "BoundSpcSet_1 \n"                                                                                      
+      line = line + "   111 111         0" + writeIntField(100+self.id, 10) + "\n"
+      f.write(line)
+
+    
+    if (self.mesh[0].print_segments):
+      self.mesh[0].printESurfsRadioss(f) 
+    if (self.is_rigid):
+      self.mesh[0].printRigidRadioss(f) 
+      
+class Interface:
+  id_master = 0
+  id_slave = 0
+  bc_count = 0
+  def __init__(self, master, slave):
+    self.id_master = master
+    self.id_slave = slave
+  
 class Model:
   tot_nod_count = 0
   tot_ele_count = 0
@@ -406,6 +450,7 @@ class Model:
     self.mat = []
     self.prop = []
     self.load_fnc = []
+    self.inter = []
     
   
   def AppendPart(self, p):
@@ -423,10 +468,16 @@ class Model:
         self.part[self.part_count-1].mesh[0].ini_elem_id = self.tot_ele_count + 1
         
     print ("Part ", self.part_count, " initial node: ", self.tot_nod_count + 1)
-
+  
+  def AppendInterface(self, i):
+    if (not isinstance(i, Interface)):
+      print ("ERROR: added object is not a interface ")
+    else:
+      self.inter.append(i)
+      
   def AppendMat(self, m):
     if (not isinstance(m, Material)):
-      print ("ERROR: added opbject is not a part ")
+      print ("ERROR: added object is not a part ")
     else:
       self.mat.append(m)
 
@@ -435,10 +486,55 @@ class Model:
     
   def AppendProp(self, p):
     if (not isinstance(p, Prop)):
-      print ("ERROR: added opbject is not a part ")
+      print ("ERROR: added object is not a part ")
     else:
       self.mat.append(p)
       
+  def printInterfaces(self,f):
+    f.write("#-  9. INTERFACES:\n")  
+    for i in range (len(self.inter)):
+      f.write("#---1----|----2----|----3----|----4----|----5----|----6----|----7----|----8----|----9----|---10----|\n")
+      f.write("/INTER/TYPE7/%d\n" % (1))
+      f.write("INTERFACE %d\n" % (1))
+      f.write("#  Slav_id   Mast_id      Istf      Ithe      Igap                Ibag      Idel     Icurv      Iadm\n")
+      line = writeIntField(self.inter[i].id_slave,10) + writeIntField(self.inter[i].id_master,10) 
+      f.write(line)
+      # WITHOUT ENDLINE
+      f.write("         0         0         0                   0         0         0         0\n")
+      f.write("#          Fscalegap             GAP_MAX             Fpenmax\n")
+      f.write("                   0                   0                   0\n")
+      f.write("#              Stmin               Stmax          %mesh_size               dtmin  Irem_gap\n")
+      f.write("                   0                   0                   0                   0         0\n")
+      f.write("#              Stfac                Fric              Gapmin              Tstart               Tstop\n")
+      f.write("#                  1                  0.                  .0                   0                   0\n")
+      f.write("                   1                 .0           0.0000                       0                   0\n")
+      f.write("#      IBC                        Inacti                VisS                VisF              Bumult\n")
+      f.write("       000                             0                   1                   1                   0\n")
+      f.write("#    Ifric    Ifiltr               Xfreq     Iform   sens_ID\n")
+      f.write("         0         0                   0         0         0\n")
+  
+  def printMovingParts(self,f):
+    for p in range(self.part_count):
+      if (self.part[p].is_moving):
+        f.write("/IMPDISP/1\n")
+        f.write("NUM3HS1D00_fixvel_1\n")
+        f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
+        f.write("         1         X         0         0       100         0         0\n")
+        f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
+        f.write("                   1                   1                   0               11000  \n")                  
+        f.write("/IMPDISP/2\n")
+        f.write("NUM3HS1D00_fixvel_1\n")
+        f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
+        f.write("         2         Y         0         0       100         0         0\n")
+        f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
+        f.write("                   1                   1                   0               11000 \n")
+        f.write("/IMPDISP/3\n")
+        f.write("NUM3HS1D00_fixvel_1\n")
+        f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
+        f.write("         3         Z         0         0       100         0         0\n")
+        f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
+        f.write("                   1                   1                   0               11000 \n")
+    
   def printRadioss(self,fname):
     f = open(fname,"w+")
     f.write("#RADIOSS STARTER\n")
@@ -488,4 +584,7 @@ class Model:
       
     for p in range(len(self.prop)):
       self.mat[p].printRadioss(f)
+      
+    self.printInterfaces(f)
+      
     f.write('/END\n')

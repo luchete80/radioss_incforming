@@ -25,6 +25,7 @@ p_S         = 4.3e-4     #ASDIF HEIGHT DISTANCE BETWEEN TOOLS
 tool_speed  = 0.6 / 60.0 * 5000 #600mm/min according to Valoppi
 t_ind       = 1.0e-3
 thck        = 5.0e-4
+tool_rad    = 0.0025
 
 thermal     = False
 
@@ -46,7 +47,9 @@ delta = 0.005
 shell_elnod = [(1,2,3,4)]
 
 shell_mesh = Plane_Mesh(1,largo,delta)
-sph1_mesh = Sphere_Mesh(2,1.0, 10) #(id, radius, divisions):
+sph1_mesh = Sphere_Mesh(2, tool_rad,        \
+                        r_i, 0.0,tool_rad + thck, \
+                                        5) #(id, radius, divisions):
 
 print("Piece Shell node count", len(shell_mesh.nodes))
 print("Shell Shell node count", len(sph1_mesh.nodes))
@@ -65,12 +68,18 @@ shell.AppendMesh(shell_mesh)
 
 sph1_pt = Part(2)
 sph1_pt.AppendMesh(sph1_mesh) 
+sph1_pt.is_rigid = True
+sph1_pt.is_moving = True
 
 model.AppendPart(shell) #FIRST PART TO ADD!
 model.AppendPart(sph1_pt)
 
 model.AppendMat(Material(1))
 model.AppendProp(Prop(1))
+
+inter_1 = Interface(2,1)
+model.AppendInterface(inter_1)
+
 
 model.part[0].mesh[0].print_segments = True
 
