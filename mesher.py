@@ -234,14 +234,15 @@ class Sphere_Mesh(Mesh):
     print ("Creating Sphere mesh")
     self.id = id
     CubeToSphere_origins = [
-    Vector(-1.0, -1.0, -1.0),
+    #Vector(-1.0, -1.0, -1.0), #ORGIINAL POINT ONE
+    Vector(1.0, -1.0, -1.0),
     Vector(1.0, -1.0, -1.0),
     Vector(1.0, -1.0, 1.0),
     Vector(-1.0, -1.0, 1.0),
     Vector(-1.0, 1.0, -1.0),
     Vector(-1.0, -1.0, 1.0)]
     CubeToSphere_rights = [
-    Vector(2.0, 0.0, 0.0),
+    Vector(-2.0, 0.0, 0.0),
     Vector(0.0, 0.0, 2.0),
     Vector(-2.0, 0.0, 0.0),
     Vector(0.0, 0.0, -2.0),
@@ -567,6 +568,7 @@ class Model:
     for g in range (self.node_group_count):
       # print ("Writing set of count: ", len (self.node_group[g].nodes))
       f.write("/GRNOD/NODE/%d\n" % self.node_group[g].id)
+      f.write("FIX_%d\n" % self.node_group[g].id)
       ff = 0;
       line = ""
       for i in range (len (self.node_group[g].nodes)):
