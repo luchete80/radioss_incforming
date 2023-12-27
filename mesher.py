@@ -327,6 +327,12 @@ def plane_mesh(length, delta, nodos, elnod, mesh):
   # np.reshape(nodos,(20,num_nodos))
   print (nodos)
   print (nodos[0][2])
+  
+class NodeGroup:
+  nodes = [] # TODO: CHANGE TO LIST
+  part = 0
+  def __init__ (self, id):
+    self.id = id
 
 class Prop: 
   def __init__(self, pid):
@@ -344,7 +350,7 @@ class Prop:
     f.write("#N	Istrain	Thick	Ashear	 	Ithick	Iplas    \n")                                                                                                
     f.write("         2          5.00000000000000E-04                                       1         1\n")
              
-             
+        
          
      
 class Material:
@@ -422,8 +428,9 @@ class Part:
       f.write(line)
 
       line = "/BCS/%d\n" % self.id
-      line = line + "BoundSpcSet_1 \n"                                                                                      
-      line = line + "   111 111         0" + writeIntField(100+self.id, 10) + "\n"
+      line = line + "BoundSpcSet_1 \n"  
+      line = line + "#  Tra rot   skew_ID  grnod_ID\n"
+      line = line + "   000 111         0" + writeIntField(100+self.id, 10) + "\n"
       f.write(line)
 
     
@@ -444,6 +451,7 @@ class Model:
   tot_nod_count = 0
   tot_ele_count = 0
   thermal = False
+  node_group_count = 0
   def __init__(self):
     self.part_count = 0
     self.part = []
@@ -451,6 +459,7 @@ class Model:
     self.prop = []
     self.load_fnc = []
     self.inter = []
+    self.node_group = []
     
   
   def AppendPart(self, p):
@@ -513,28 +522,69 @@ class Model:
       f.write("#    Ifric    Ifiltr               Xfreq     Iform   sens_ID\n")
       f.write("         0         0                   0         0         0\n")
   
+  # def printMovingPart(self,id,fid,f):
   def printMovingParts(self,f):
     for p in range(self.part_count):
       if (self.part[p].is_moving):
         f.write("/IMPDISP/1\n")
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("         1         X         0         0       100         0         0\n")
+        f.write("         1         X         0         0       102         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000  \n")                  
         f.write("/IMPDISP/2\n")
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("         2         Y         0         0       100         0         0\n")
+        f.write("         2         Y         0         0       102         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000 \n")
         f.write("/IMPDISP/3\n")
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("         3         Z         0         0       100         0         0\n")
+        f.write("         3         Z         0         0       102         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000 \n")
-    
+  
+  def AddNodeSetOutsideBoxXY (self, id, v1, v2):
+    self.node_group.append(NodeGroup(id))
+    nc = 0
+    for p in range (self.part_count):
+      # print ("ini node id ",self.part[p].mesh[0].ini_node_id )
+      for n in range (self.part[p].mesh[0].node_count):
+        inc = False
+        for d in range (2):
+          if (self.part[p].mesh[0].nodes[n][d] < v1.components[d] or self.part[p].mesh[0].nodes[n][d] > v2.components[d]):
+            inc = True
+            # print ("comp, bound", self.part[p].mesh[0].nodes[n][d], v1.components[d],v2.components[d])
+        if (inc): 
+          self.node_group[self.node_group_count].nodes.append(self.part[p].mesh[0].ini_node_id + n)   
+          nc = nc +1
+    self.node_group_count =   self.node_group_count + 1
+    print ("Outside Box Set Node count: ", nc)
+        
+
+  def printFixNodeGroups(self,f):
+    for g in range (self.node_group_count):
+      # print ("Writing set of count: ", len (self.node_group[g].nodes))
+      f.write("/GRNOD/NODE/%d\n" % self.node_group[g].id)
+      ff = 0;
+      line = ""
+      for i in range (len (self.node_group[g].nodes)):
+        # print ("i ",i, "id ", self.node_group[g].nodes[i], "line ", line  )
+        line = line + writeIntField(self.node_group[g].nodes[i],10)
+        ff = ff + 1
+        if (ff ==10):
+          ff = 0
+          f.write(line + "\n")
+          line = ""
+      if (ff>0):
+        f.write(line + "\n")    
+      f.write("/BCS/%d\n" % self.node_group[g].id)
+      f.write("BoundSpcSet_1\n")     
+      f.write("#  Tra rot   skew_ID  grnod_ID\n")      
+      f.write("   111 111         0" + writeIntField(self.node_group[g].id,10) + "\n")         
+
+  
   def printRadioss(self,fname):
     f = open(fname,"w+")
     f.write("#RADIOSS STARTER\n")
@@ -543,6 +593,7 @@ class Model:
     f.write("      2019         0 \n")
     f.write("                  kg                   m                   s\n")
     f.write("                  kg                   m                   s\n")
+    f.write("#include functions.inc\n")
     f.write('/NODE\n')
     for p in range (self.part_count):
       # print ("part node count ", self.part[p].mesh[0].node_count)
@@ -561,8 +612,9 @@ class Model:
     for m in range (len(self.mat)):
       self.mat[m].printRadioss(f)
     
+    
     if (self.thermal):
-      # f.write("include thermal.inc\n")
+      # f.write("#include thermal.inc\n")  
       print ("Load function count: ", len(self.load_fnc))
       ### LOAD FNC
       for lf in range (len(self.load_fnc)):
@@ -586,5 +638,8 @@ class Model:
       self.mat[p].printRadioss(f)
       
     self.printInterfaces(f)
+    
+    self.printFixNodeGroups(f)
+    self.printMovingParts(f)
       
     f.write('/END\n')

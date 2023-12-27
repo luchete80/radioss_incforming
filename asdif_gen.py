@@ -46,6 +46,7 @@ delta = 0.005
 
 shell_elnod = [(1,2,3,4)]
 
+
 shell_mesh = Plane_Mesh(1,largo,delta)
 sph1_mesh = Sphere_Mesh(2, tool_rad,        \
                         r_i, 0.0,tool_rad + thck, \
@@ -66,12 +67,17 @@ print ("Model size: ", len(model.part))
 shell = Part(1)
 shell.AppendMesh(shell_mesh) 
 
+
+bcpos = largo/2.0 - 2.0 * delta
+
 sph1_pt = Part(2)
 sph1_pt.AppendMesh(sph1_mesh) 
 sph1_pt.is_rigid = True
 sph1_pt.is_moving = True
 
 model.AppendPart(shell) #FIRST PART TO ADD!
+model.AddNodeSetOutsideBoxXY(1000,Vector(-bcpos,-bcpos,0.0), Vector(bcpos,bcpos,0.0)) #id, v1, v2):
+
 model.AppendPart(sph1_pt)
 
 model.AppendMat(Material(1))
