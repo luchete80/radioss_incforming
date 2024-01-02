@@ -4,3 +4,4 @@ mov*.csv
 *.out
 *.rad
 testA*
+*.tmp
