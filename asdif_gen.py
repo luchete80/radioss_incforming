@@ -17,7 +17,7 @@ r_i         = 0.01
 r_o         = 0.0325    #NO CONFUNDI CON HERRAMENTAS IN Y OOUT
 r           = 0.0325
 dr          = 5.0e-4    #DESAPARECE DE ACUERDO A LA GEOMETRIA
-t_end       = 1.0e-1
+t_end       = 0.002
 dt          = 1.0e-5
 #t_ang       = 1.0e-3    #Periodo angular, ANTES ERA CONSTANTE
 p_D         = 2.5e-3     #ASDIF RADIAL DISTANCE BETWEEN TOOLS
@@ -49,19 +49,20 @@ shell_elnod = [(1,2,3,4)]
 
 shell_mesh = Plane_Mesh(1,largo,delta)
 sph1_mesh = Sphere_Mesh(2, tool_rad,        \
-                        0.0, 0.0,tool_rad + thck, \
+                        0.0, 0.0,(tool_rad ), \
                                         5) #(id, radius, divisions):
 
 sph2_mesh = Sphere_Mesh(3, tool_rad,        \
-                        0.0, 0.0,-tool_rad - thck, \
+                        0.0, 0.0,(-tool_rad ), \
                                         5) #(id, radius, divisions):
                                         
 print("Piece Shell node count", len(shell_mesh.nodes))
-print("Shell Shell node count", len(sph1_mesh.nodes))
+# print("Shell Shell node count", len(sph1_mesh.nodes))
 
-print("Shell node count var", shell_mesh.node_count)
-print("Sphere node count var", sph1_mesh.node_count)
+print("Shell node count: ", shell_mesh.node_count)
+# print("Sphere node count var", sph1_mesh.node_count)
 
+print("Sphere 2 node count:", sph2_mesh.node_count)
 
 # print("Shell node count", len(shell_mesh.elnod))
 # print("Shell node count", len(sph1_mesh.elnod))
@@ -79,16 +80,26 @@ sph1_pt.AppendMesh(sph1_mesh)
 sph1_pt.is_rigid = True
 sph1_pt.is_moving = True
 
+sph2_pt = Part(3)
+sph2_pt.AppendMesh(sph2_mesh) 
+sph2_pt.is_rigid = True
+sph2_pt.is_moving = True
+
 model.AppendPart(shell) #FIRST PART TO ADD!
 model.AddNodeSetOutsideBoxXY(1000,Vector(-bcpos,-bcpos,0.0), Vector(bcpos,bcpos,0.0)) #id, v1, v2):
 
 model.AppendPart(sph1_pt)
+model.AppendPart(sph2_pt)
 
 model.AppendMat(Material(1))
 model.AppendProp(Prop(1))
 
 inter_1 = Interface(2,1)
 model.AppendInterface(inter_1)
+
+inter_2 = Interface(3,1)
+model.AppendInterface(inter_2)
+
 
 if (thermal):
   model.part[0].mesh[0].print_segments = True #THERMAL SEGMENTS, RESERVED IDS TO PARTS
@@ -116,13 +127,17 @@ def save(lin):
   fi_y = open("movi_y.inc","w")
   fi_z = open("movi_z.inc","w")
   
-  fo_x = open("movo_x.csv","w")
-  fo_y = open("movo_y.csv","w")
-  fo_z = open("movo_z.csv","w")
+  fo_x = open("movo_x.inc","w")
+  fo_y = open("movo_y.inc","w")
+  fo_z = open("movo_z.inc","w")
 
   fi_x.write("/FUNCT/1000001\nmovx\n")    
   fi_y.write("/FUNCT/1000002\nmovy\n")      
   fi_z.write("/FUNCT/1000003\nmovz\n")    
+
+  fo_x.write("/FUNCT/1000004\nmovx\n")    
+  fo_y.write("/FUNCT/1000005\nmovy\n")      
+  fo_z.write("/FUNCT/1000006\nmovz\n")    
   
   t = 0.0
   r = r_i
@@ -144,9 +159,13 @@ def save(lin):
     fi_y.write(writeFloatField(t,20,6) + writeFloatField(0.,20,6) + "\n")
     fi_z.write(writeFloatField(t,20,6) + writeFloatField(zi,20,6) + "\n")
 
-    fo_x.write("%.6e, %.6e\n" % (t,xo))
-    fo_y.write("%.6e, %.6e\n" % (t,0.0))
-    fo_z.write("%.6e, %.6e\n" % (t,zo))  
+    fo_x.write(writeFloatField(t,20,6) + writeFloatField(xo,20,6) + "\n")
+    fo_y.write(writeFloatField(t,20,6) + writeFloatField(0.,20,6) + "\n")
+    fo_z.write(writeFloatField(t,20,6) + writeFloatField(zo,20,6) + "\n")
+    
+    # fo_x.write("%.6e, %.6e\n" % (t,xo))
+    # fo_y.write("%.6e, %.6e\n" % (t,0.0))
+    # fo_z.write("%.6e, %.6e\n" % (t,zo))  
     t +=dt 
  
   print("Final zi %.3e , zo %.3e \n" %(zi,zo))
@@ -177,9 +196,13 @@ def save(lin):
       fi_y.write(writeFloatField(t,20,6) + writeFloatField(yi,20,6) + "\n")
       fi_z.write(writeFloatField(t,20,6) + writeFloatField(zi,20,6) + "\n")
 
-      fo_x.write("%.6e, %.6e\n" % (t,xo))
-      fo_y.write("%.6e, %.6e\n" % (t,yo))
-      fo_z.write("%.6e, %.6e\n" % (t,zo))
+      fo_x.write(writeFloatField(t,20,6) + writeFloatField(xo,20,6) + "\n")
+      fo_y.write(writeFloatField(t,20,6) + writeFloatField(yo,20,6) + "\n")
+      fo_z.write(writeFloatField(t,20,6) + writeFloatField(zo,20,6) + "\n")
+      
+      # fo_x.write("%.6e, %.6e\n" % (t,xo))
+      # fo_y.write("%.6e, %.6e\n" % (t,yo))
+      # fo_z.write("%.6e, %.6e\n" % (t,zo))
       
       t_inc +=dt
       t += dt
@@ -207,6 +230,7 @@ def save(lin):
     # for f in range (model.load_fnc[e].val_count):
       # print ("Load Fnction ", e, model.load_fnc[e].getVal(f))
     
+
   model.printRadioss("test_0000.rad")
 
 

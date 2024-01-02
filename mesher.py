@@ -1,4 +1,5 @@
 from math import *
+import numpy as np
 
 def writeFloatField(number, length, decimals):
   fmt ='%.' + str(decimals) + 'e'
@@ -159,7 +160,7 @@ class Mesh:
     f.write(writeIntField(self.id,10)+"\n")
     
   def printRigidRadioss(self,f): #ALREADY OPENED
-    f.write("/RBODY/%d\n"%(100))
+    f.write("/RBODY/%d\n"%(self.id*100))
     f.write("PART_%d\n"%(self.id))
     f.write("#---1----|----2----|----3----|----4----|----5----|----6----|----7----|----8----|----9----|---10----|\n");
     f.write("# node_ID    sens_ID	  Skew_ID	   Ispher	               Mass	  grnd_ID	    Ikrem	     ICoG	  surf_ID\n");
@@ -205,6 +206,8 @@ class Plane_Mesh(Mesh):
     ini_node_id = inin 
     ini_elem_id = inie
   def __init__(self, id, largo, delta):
+    self.nodes = []
+    self.elnod = []
     self.id = id
     elem_xy = (int)(largo/delta)
     nc = (int)(elem_xy+1)
@@ -236,7 +239,13 @@ class Sphere_Mesh(Mesh):
   #NECESSARY TO CREATE SEPARATED NEW LISTS!
   nodes = []
   elnod = [] 
+
   def __init__(self, id, radius, ox,oy,oz, divisions):
+    self.nodes = []
+    self.elnod = []
+    existin_vtx = np.zeros((6, divisions+1, divisions+1)).astype(int)
+    rep = 0
+    # print ("existing vtk ", existin_vtx)
     print ("Creating Sphere mesh")
     self.id = id
     CubeToSphere_origins = [
@@ -262,10 +271,10 @@ class Sphere_Mesh(Mesh):
 		Vector(0.0, 0.0, -2.0) ]
     step = 1.0 / divisions
     step3 = Vector(step, step, step)
-
-    test = Vector (0.,0.,0.)
+    
+    
     n = 0
-    for face in range (1): #CUBE FACES 
+    for face in range (6): #CUBE FACES 
       origin = CubeToSphere_origins[face]
       right = CubeToSphere_rights[face]
       # print (right)
@@ -274,54 +283,67 @@ class Sphere_Mesh(Mesh):
         j3 = Vector(j,j,j)
         for i in range (divisions+1):
           i3 = Vector(i,i,i)
+          put_node = True
           # print ("i3 j3 ", i3, j3)
           # print (right)
           # print ("origin ")
           # print (origin)
           # print ("right * origin ")
 
-          # test = right * origin  
-          # print (test)
-          # test = right + up  
-          # print (test)
           # const Vector3 p = origin + step3 * (i3 * right + j3 * up);
           p = origin + ( step3 * (i3 * right  + up *j3 )  )
           p2 = p * p
-          # rx = sqrt(1.0 - 0.5 * (p2.y + p2.z) + p2.y*p2.z/3.0)
-          # ry = sqrt(1.0 - 0.5 * (p2.z + p2.x) + p2.z*p2.x/3.0)
-          # rz = sqrt(1.0 - 0.5 * (p2.x + p2.y) + p2.x*p2.y/3.0)
+          
           rx = p.components[0] * sqrt(1.0 - 0.5 * (p2.components[1] + p2.components[2]) + p2.components[1]*p2.components[2]/3.0)
           ry = p.components[1] * sqrt(1.0 - 0.5 * (p2.components[2] + p2.components[0]) + p2.components[2]*p2.components[0]/3.0)
           rz = p.components[2] * sqrt(1.0 - 0.5 * (p2.components[0] + p2.components[1]) + p2.components[0]*p2.components[1]/3.0)
           
           x = rx * radius + ox;           y = ry * radius + oy ;           z = rz * radius + oz;
-          print ("z , z corrected ", rz,z)
-          #self.nodes.append((rx,ry,rz))
-          self.nodes.append((x,y,z))
+          # print ("z , z corrected ", rz,z)
           
-          n = n +1
+          # print ("node ", n, ", coords " ,x,y,z)
+          existin_vtx[face][i][j] = n 
+          
+          for k in range (n): #CHECK IF THERE IS AN EXISTENT NODE THERE
+            if ( abs(x - self.nodes[k][0])<1.0e-4 and abs(y - self.nodes[k][1])<1.0e-4 and abs(z - self.nodes[k][2])<1.0e-4 ):
+              print ("FOUND SIMILAR X in node ", k ,"face", face, "i, j ", i, j, "pos: ", x,y,z)
+              rep = rep + 1
+              put_node = False
+              existin_vtx[face][i][j] = k 
+          
+
+          if (put_node):
+            self.nodes.append((x,y,z))
+            # print ("vertex ", n)
+            n = n +1
     
-    
+    # print ("existing vtk ", existin_vtx)
+    print ("repeated nodes: ", rep)
     self.nodes.append((ox,oy,oz)) #CENTER AS RIGID PIVOT
+    print ("Sphere Origin: ", ox,oy,oz)
     self.node_count = n + 1
     
-    # print ("generated: %d", n , " nodes      ")
+    print ("Sphere generated: %d", n , " nodes      ")
     # print ("Node vector count: ", len(self.nodes))
     
       # print (origin)
     
     # for i in range (self.node_count):
       # print ("SPHERE Node ", i, self.nodes[i])
-    
+
+    # ORIGINAL 
     e = 0
-    for ey in range (divisions):
-      for ex in range (divisions):
-        # elem%elnod(i,:)=[(nel(1)+1)*ey + ex+1,(nel(1)+1)*ey + ex+2,(nel(1)+1)*(ey+1)+ex+2,(nel(1)+1)*(ey+1)+ex+1]  
-        self.elnod.append(((divisions+1)*ey+ex,(divisions+1)*ey + ex+1,(divisions+1)*(ey+1)+ex+1,(divisions+1)*(ey+1)+ex))      
-        e = e + 1
+    for face in range (6): #CUBE FACES
+      for ey in range (divisions):
+        for ex in range (divisions):  
+          # self.elnod.append(((divisions+1)*ey+ex,(divisions+1)*ey + ex+1,(divisions+1)*(ey+1)+ex+1,(divisions+1)*(ey+1)+ex))      
+          # print ("connectivity: ",(divisions+1)*ey+ex,(divisions+1)*ey + ex+1,(divisions+1)*(ey+1)+ex+1,(divisions+1)*(ey+1)+ex)  
+          # print ("connectivity: ",existin_vtx[face][ex][ey], existin_vtx[face][ex+1][ey], existin_vtx[face][ex+1][ey+1], existin_vtx[face][ex][ey+1])
+          self.elnod.append((existin_vtx[face][ex][ey], existin_vtx[face][ex+1][ey], existin_vtx[face][ex+1][ey+1], existin_vtx[face][ex][ey+1]))
+          e = e + 1
     self.elem_count = e
     
-import numpy as np
+
 
 def plane_mesh(length, delta, nodos, elnod, mesh):
   num_nodos = 10
@@ -331,8 +353,8 @@ def plane_mesh(length, delta, nodos, elnod, mesh):
   nodos.append((1,1,1))
   # print("\nArray y : ", y) 
   # np.reshape(nodos,(20,num_nodos))
-  print (nodos)
-  print (nodos[0][2])
+  # print (nodos)
+  # print (nodos[0][2])
   
 class NodeGroup:
   nodes = [] # TODO: CHANGE TO LIST
@@ -484,7 +506,7 @@ class Model:
         self.tot_ele_count = self.tot_ele_count + self.part[self.part_count-2].mesh[0].elem_count
         self.part[self.part_count-1].mesh[0].ini_elem_id = self.tot_ele_count + 1
         
-    print ("Part ", self.part_count, " initial node: ", self.tot_nod_count + 1)
+    print ("Part ", self.part_count, " initial node: ", self.tot_nod_count + 1, "end node: ", self.tot_nod_count)
   
   def AppendInterface(self, i):
     if (not isinstance(i, Interface)):
@@ -511,8 +533,8 @@ class Model:
     f.write("#-  9. INTERFACES:\n")  
     for i in range (len(self.inter)):
       f.write("#---1----|----2----|----3----|----4----|----5----|----6----|----7----|----8----|----9----|---10----|\n")
-      f.write("/INTER/TYPE7/%d\n" % (1))
-      f.write("INTERFACE %d\n" % (1))
+      f.write("/INTER/TYPE7/%d\n" % (i))
+      f.write("INTERFACE %d\n" % (i))
       f.write("#  Slav_id   Mast_id      Istf      Ithe      Igap                Ibag      Idel     Icurv      Iadm\n")
       line = writeIntField(self.inter[i].id_slave,10) + writeIntField(self.inter[i].id_master+1000000,10) 
       f.write(line)
@@ -532,27 +554,28 @@ class Model:
   
   # def printMovingPart(self,id,fid,f):
   def printMovingParts(self,f):
+    func = 1000001
     for p in range(self.part_count):
       if (self.part[p].is_moving):
-        f.write("/IMPDISP/1\n")
+        f.write("/IMPDISP/%d\n"%(3*p+1))
         f.write("NUM3HS1D00_fixvel_1\n")
-        f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("   1000001         X         0         0       102         0         0\n")
+        f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n") 
+        f.write(writeIntField(func,10) + "         X         0         0" + writeIntField(self.part[p].id+100,10) + "         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000  \n")                  
-        f.write("/IMPDISP/2\n")
+        f.write("/IMPDISP/%d\n"%(3*p+2))
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("   1000002         Y         0         0       102         0         0\n")
+        f.write(writeIntField(func+1,10) + "         Y         0         0" + writeIntField(self.part[p].id+100,10) + "         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000 \n")
-        f.write("/IMPDISP/3\n")
+        f.write("/IMPDISP/%d\n"%(3*p+3))
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("   1000003         Z         0         0       102         0         0\n")
+        f.write(writeIntField(func+2,10) + "         Z         0         0" + writeIntField(self.part[p].id+100,10) + "         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000 \n")
-  
+        func = func + 3
   def AddNodeSetOutsideBoxXY (self, id, v1, v2):
     self.node_group.append(NodeGroup(id))
     nc = 0
@@ -595,6 +618,7 @@ class Model:
 
   
   def printRadioss(self,fname):
+    print ("WRITING RADIOSS INPUT\n")
     f = open(fname,"w+")
     f.write("#RADIOSS STARTER\n")
     f.write("/BEGIN\n")
@@ -605,11 +629,14 @@ class Model:
     f.write("#include movi_x.inc\n")
     f.write("#include movi_y.inc\n")
     f.write("#include movi_z.inc\n")
+    f.write("#include movo_x.inc\n")
+    f.write("#include movo_y.inc\n")
+    f.write("#include movo_z.inc\n")
     f.write('/NODE\n')
     for p in range (self.part_count):
-      # print ("part node count ", self.part[p].mesh[0].node_count)
+      print ("part node count ", self.part[p].mesh[0].node_count)
       for i in range (self.part[p].mesh[0].node_count):
-        print ("Node ", self.part[p].mesh[0].nodes[i])
+        # print ("Node ", self.part[p].mesh[0].nodes[i])
         line = writeIntField(i + self.part[p].mesh[0].ini_node_id,10)
         for d in range (3):
           line = line + writeFloatField(self.part[p].mesh[0].nodes[i][d],20,6) 
