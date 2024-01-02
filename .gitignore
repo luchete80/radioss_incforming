@@ -10,3 +10,4 @@ testA*
 *.tmp
 *.rst
 *.inc
+*.vtk
