@@ -52,6 +52,10 @@ sph1_mesh = Sphere_Mesh(2, tool_rad,        \
                         0.0, 0.0,tool_rad + thck, \
                                         5) #(id, radius, divisions):
 
+sph2_mesh = Sphere_Mesh(3, tool_rad,        \
+                        0.0, 0.0,-tool_rad - thck, \
+                                        5) #(id, radius, divisions):
+                                        
 print("Piece Shell node count", len(shell_mesh.nodes))
 print("Shell Shell node count", len(sph1_mesh.nodes))
 

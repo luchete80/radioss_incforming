@@ -231,6 +231,7 @@ class Plane_Mesh(Mesh):
     
 #Based on: https://github.com/caosdoar/spheres/blob/master/src/spheres.cpp 
 #https://medium.com/@oscarsc/four-ways-to-create-a-mesh-for-a-sphere-d7956b825db4
+#OUTSIDE SURFACES IN KRATOS IS CLOCKWISE LOOKING FROM OUTSIDE (IS LEFT HAND)
 class Sphere_Mesh(Mesh):
   #NECESSARY TO CREATE SEPARATED NEW LISTS!
   nodes = []
