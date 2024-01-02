@@ -27,7 +27,7 @@ t_ind       = 1.0e-3
 thck        = 5.0e-4
 tool_rad    = 0.0025
 
-thermal     = False
+thermal     = True
 
 
 filelbl = Label(window, text="Archivo", width=15,justify=LEFT)
@@ -49,7 +49,7 @@ shell_elnod = [(1,2,3,4)]
 
 shell_mesh = Plane_Mesh(1,largo,delta)
 sph1_mesh = Sphere_Mesh(2, tool_rad,        \
-                        r_i, 0.0,tool_rad + thck, \
+                        0.0, 0.0,tool_rad + thck, \
                                         5) #(id, radius, divisions):
 
 print("Piece Shell node count", len(shell_mesh.nodes))
@@ -86,8 +86,8 @@ model.AppendProp(Prop(1))
 inter_1 = Interface(2,1)
 model.AppendInterface(inter_1)
 
-
-model.part[0].mesh[0].print_segments = True
+if (thermal):
+  model.part[0].mesh[0].print_segments = True #THERMAL SEGMENTS, RESERVED IDS TO PARTS
 
 if (thermal):
   model.thermal = True
@@ -108,12 +108,17 @@ def save(lin):
 # f= open(textField.get(),"w+")
   # LA HERRAMIENTA INTERNA ESTA EN EL TOP, LA EXTERNA EN EL BOTTOM
   # PERO TOP Y BOTTOM CONFUNDE POR LAS INDENTACIONES
-  fi_x = open("movi_x.csv","w")
-  fi_y = open("movi_y.csv","w")
-  fi_z = open("movi_z.csv","w")
+  fi_x = open("movi_x.inc","w")
+  fi_y = open("movi_y.inc","w")
+  fi_z = open("movi_z.inc","w")
+  
   fo_x = open("movo_x.csv","w")
   fo_y = open("movo_y.csv","w")
   fo_z = open("movo_z.csv","w")
+
+  fi_x.write("/FUNCT/1000001\nmovx\n")    
+  fi_y.write("/FUNCT/1000002\nmovy\n")      
+  fi_z.write("/FUNCT/1000003\nmovz\n")    
   
   t = 0.0
   r = r_i
@@ -131,9 +136,9 @@ def save(lin):
   while (t < t_ind):    
     zi -= vz * dt
     #HAY QUE VER SI ES NECESARIO ESCRIBIR X E Y PARA TODOS LOS TIEMPOS
-    fi_x.write("%.6e, %.6e\n" % (t,xi))
-    fi_y.write("%.6e, %.6e\n" % (t,0.0))
-    fi_z.write("%.6e, %.6e\n" % (t,zi))
+    fi_x.write(writeFloatField(t,20,6) + writeFloatField(xi,20,6) + "\n")
+    fi_y.write(writeFloatField(t,20,6) + writeFloatField(0.,20,6) + "\n")
+    fi_z.write(writeFloatField(t,20,6) + writeFloatField(zi,20,6) + "\n")
 
     fo_x.write("%.6e, %.6e\n" % (t,xo))
     fo_y.write("%.6e, %.6e\n" % (t,0.0))
@@ -164,9 +169,9 @@ def save(lin):
       # print("zi %.3e , zo %.3e \n" %(zi,zo))
       # z -= t_inc/t_ang * dr # CAMBIAR A dz
       
-      fi_x.write("%.6e, %.6e\n" % (t,xi))
-      fi_y.write("%.6e, %.6e\n" % (t,yi))
-      fi_z.write("%.6e, %.6e\n" % (t,zi))
+      fi_x.write(writeFloatField(t,20,6) + writeFloatField(xi,20,6) + "\n")
+      fi_y.write(writeFloatField(t,20,6) + writeFloatField(yi,20,6) + "\n")
+      fi_z.write(writeFloatField(t,20,6) + writeFloatField(zi,20,6) + "\n")
 
       fo_x.write("%.6e, %.6e\n" % (t,xo))
       fo_y.write("%.6e, %.6e\n" % (t,yo))
@@ -175,12 +180,12 @@ def save(lin):
       t_inc +=dt
       t += dt
 
-      # if (thermal):
-        # e = model.part[0].mesh[0].findNearestElem(xi,yi,zi)
-        # flog.write ("TIME %f, pos: %.6e %.6e, Found %d\n" % (t, xi, yi, e ))
-        # coord = str (model.part[0].mesh[0].elcenter[e].components)
-        # flog.write ("baricenter: %s\n" %(coord))  
-        # model.load_fnc[e].Append(t,1.0e6)
+      if (thermal):
+        e = model.part[0].mesh[0].findNearestElem(xi,yi,zi)
+        flog.write ("TIME %f, pos: %.6e %.6e, Found %d\n" % (t, xi, yi, e ))
+        coord = str (model.part[0].mesh[0].elcenter[e].components)
+        flog.write ("baricenter: %s\n" %(coord))  
+        model.load_fnc[e].Append(t,1.0e6)
       
     r +=dr
     turn += 1    

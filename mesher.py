@@ -153,6 +153,11 @@ class Mesh:
         line = line + writeIntField(self.elnod[i][d]+1,10)
       f.write(line + '\n')
   
+  def printContSurfRadioss(self,f): #ALREADY OPENED
+    f.write("/SURF/PART/%d\n"%(self.id+1000000))
+    f.write("PART_RIG_SURF_%d\n"%self.id)
+    f.write(writeIntField(self.id,10)+"\n")
+    
   def printRigidRadioss(self,f): #ALREADY OPENED
     f.write("/RBODY/%d\n"%(100))
     f.write("PART_%d\n"%(self.id))
@@ -234,15 +239,14 @@ class Sphere_Mesh(Mesh):
     print ("Creating Sphere mesh")
     self.id = id
     CubeToSphere_origins = [
-    #Vector(-1.0, -1.0, -1.0), #ORGIINAL POINT ONE
-    Vector(1.0, -1.0, -1.0),
+    Vector(-1.0, -1.0, -1.0), #ORGIINAL POINT ONE
     Vector(1.0, -1.0, -1.0),
     Vector(1.0, -1.0, 1.0),
     Vector(-1.0, -1.0, 1.0),
     Vector(-1.0, 1.0, -1.0),
     Vector(-1.0, -1.0, 1.0)]
     CubeToSphere_rights = [
-    Vector(-2.0, 0.0, 0.0),
+    Vector(2.0, 0.0, 0.0),
     Vector(0.0, 0.0, 2.0),
     Vector(-2.0, 0.0, 0.0),
     Vector(0.0, 0.0, -2.0),
@@ -390,6 +394,7 @@ class Part:
   is_rigid = False
   is_moving = False
   id_grn_move = 0 #GROUP NODE FOR MOVING
+  
   def __init__(self, mid):
     self.id = mid
     self.mesh = []
@@ -439,6 +444,7 @@ class Part:
       self.mesh[0].printESurfsRadioss(f) 
     if (self.is_rigid):
       self.mesh[0].printRigidRadioss(f) 
+      self.mesh[0].printContSurfRadioss(f)
       
 class Interface:
   id_master = 0
@@ -507,7 +513,7 @@ class Model:
       f.write("/INTER/TYPE7/%d\n" % (1))
       f.write("INTERFACE %d\n" % (1))
       f.write("#  Slav_id   Mast_id      Istf      Ithe      Igap                Ibag      Idel     Icurv      Iadm\n")
-      line = writeIntField(self.inter[i].id_slave,10) + writeIntField(self.inter[i].id_master,10) 
+      line = writeIntField(self.inter[i].id_slave,10) + writeIntField(self.inter[i].id_master+1000000,10) 
       f.write(line)
       # WITHOUT ENDLINE
       f.write("         0         0         0                   0         0         0         0\n")
@@ -530,19 +536,19 @@ class Model:
         f.write("/IMPDISP/1\n")
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("         1         X         0         0       102         0         0\n")
+        f.write("   1000001         X         0         0       102         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000  \n")                  
         f.write("/IMPDISP/2\n")
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("         2         Y         0         0       102         0         0\n")
+        f.write("   1000002         Y         0         0       102         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000 \n")
         f.write("/IMPDISP/3\n")
         f.write("NUM3HS1D00_fixvel_1\n")
         f.write("#funct_IDT       Dir   skew_ID sensor_ID  grnod_ID  frame_ID     Icoor\n")
-        f.write("         3         Z         0         0       102         0         0\n")
+        f.write("   1000003         Z         0         0       102         0         0\n")
         f.write("#           Ascale_x            Fscale_Y              Tstart               Tstop\n")
         f.write("                   1                   1                   0               11000 \n")
   
@@ -595,7 +601,9 @@ class Model:
     f.write("      2019         0 \n")
     f.write("                  kg                   m                   s\n")
     f.write("                  kg                   m                   s\n")
-    f.write("#include functions.inc\n")
+    f.write("#include movi_x.inc\n")
+    f.write("#include movi_y.inc\n")
+    f.write("#include movi_z.inc\n")
     f.write('/NODE\n')
     for p in range (self.part_count):
       # print ("part node count ", self.part[p].mesh[0].node_count)
