@@ -8,3 +8,5 @@ mov*.csv
 *.rad
 testA*
 *.tmp
+*.rst
+*.inc
